@@ -1,7 +1,12 @@
 import os
+import re
 from rank_bm25 import BM25Okapi
 
 CORPUS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../corpus"))
+
+def tokenize(text: str):
+    # Extracts clean words only, stripping out question marks, periods, and punctuation
+    return re.findall(r'\w+', text.lower())
 
 def load_chunks():
     chunks = []
@@ -23,11 +28,14 @@ def load_chunks():
     return chunks
 
 _chunks = load_chunks()
-_tokenized = [doc.lower().split(" ") for doc in _chunks]
+_tokenized = [tokenize(doc) for doc in _chunks]
 _bm25 = BM25Okapi(_tokenized)
 
 def hybrid_search(query: str, top_k: int = 5):
-    tokenized_query = query.lower().split(" ")
+    tokenized_query = tokenize(query)
+    if not tokenized_query:
+        return [{"text": _chunks[0]}]
+        
     scores = _bm25.get_scores(tokenized_query)
     top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
     
