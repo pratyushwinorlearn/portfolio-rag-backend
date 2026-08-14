@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sentence-transformers
+chromadb
+rank-bm25
+langchain-text-splitters
+python-dotenv
+sse-starlette
+groq
