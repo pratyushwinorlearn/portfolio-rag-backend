@@ -1,40 +1,42 @@
-from sentence_transformers import SentenceTransformer
-import chromadb
 import os
+from rank_bm25 import BM25Okapi
 
-_embed_model = None
-_collection = None
+# Load your markdown corpus files dynamically on startup
+CORPUS_DIR = os.path.join(os.path.dirname(__file__), "../corpus")
 
-def get_embed_model():
-    global _embed_model
-    if _embed_model is None:
-        _embed_model = SentenceTransformer("BAAI/bge-small-en-v1.5", device="cpu")
-    return _embed_model
-
-def get_collection():
-    global _collection
-    if _collection is None:
-        db_path = os.path.join(os.path.dirname(__file__), "../chroma_db")
-        client = chromadb.PersistentClient(path=db_path)
-        _collection = client.get_collection("portfolio_chunks")
-    return _collection
-
-def hybrid_search(query: str, top_k: int = 20):
-    model = get_embed_model()
-    collection = get_collection()
+def load_chunks():
+    chunks = []
+    if os.path.exists(CORPUS_DIR):
+        for filename in os.listdir(CORPUS_DIR):
+            if filename.endswith(".md"):
+                filepath = os.path.join(CORPUS_DIR, filename)
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    # Split markdown by headers to create distinct chunks
+                    sections = content.split("\n## ")
+                    for sec in sections:
+                        if sec.strip():
+                            chunks.append(sec.strip())
     
-    query_embedding = model.encode(query).tolist()
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k
-    )
+    # Fallback if corpus folder isn't found
+    if not chunks:
+        chunks = ["Pratyush is a B.Tech Computer Science student at Bennett University skilled in full-stack development and AI."]
+    return chunks
+
+# Initialize BM25 index in memory (uses < 5MB RAM)
+_chunks = load_chunks()
+_tokenized = [doc.lower().split(" ") for doc in _chunks]
+_bm25 = BM25Okapi(_tokenized)
+
+def hybrid_search(query: str, top_k: int = 5):
+    tokenized_query = query.lower().split(" ")
+    scores = _bm25.get_scores(tokenized_query)
     
-    # Format results to match your expected structure
-    documents = results["documents"][0]
-    metadatas = results["metadatas"][0]
+    # Get top matching chunk indices
+    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
     
     candidates = []
-    for doc, meta in zip(documents, metadatas):
-        candidates.append({"text": doc, "metadata": meta})
+    for idx in top_indices:
+        candidates.append({"text": _chunks[idx]})
         
     return candidates
