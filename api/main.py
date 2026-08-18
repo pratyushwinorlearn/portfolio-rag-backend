@@ -54,6 +54,7 @@ async def chat(req: ChatRequest):
                 model="qwen/qwen3.6-27b",
                 messages=[{"role": "user", "content": prompt}],
                 stream=True,
+                reasoning_effort="none"
             )
             for chunk in stream:
                 token = chunk.choices[0].delta.content or ""
