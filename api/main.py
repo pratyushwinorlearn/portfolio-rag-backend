@@ -54,7 +54,7 @@ async def chat(req: ChatRequest):
                 model="openai/gpt-oss-120b",
                 messages=[{"role": "user", "content": prompt}],
                 stream=True,
-                reasoning_effort="none"
+                reasoning_effort="low"
             )
             for chunk in stream:
                 token = chunk.choices[0].delta.content or ""
