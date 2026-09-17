@@ -51,7 +51,7 @@ async def chat(req: ChatRequest):
             from groq import Groq
             client = Groq(api_key=os.getenv("GROQ_API_KEY"))
             stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 messages=[{"role": "user", "content": prompt}],
                 stream=True,
                 reasoning_effort="none"
